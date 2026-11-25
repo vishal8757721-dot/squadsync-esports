@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>SquadSync Esports — Squad & Scrims Finder</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & Rajdhani for Esports feel -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Rajdhani', 'sans-serif'],
+          },
+          colors: {
+            cyber: {
+              bg: '#090b10',
+              card: '#121620',
+              cardHover: '#181e2c',
+              border: '#1f2937',
+              neon: '#00f5d4',
+              purple: '#9b5de5',
+              orange: '#ff6b35',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom scrollbar & mobile polish */
+    body {
+      background-color: #05070a;
+      color: #f3f4f6;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .font-esports {
+      font-family: 'Rajdhani', sans-serif;
+      letter-spacing: 0.03em;
+    }
+    .neon-glow {
+      box-shadow: 0 0 18px rgba(0, 245, 212, 0.22);
+    }
+    .neon-border {
+      border-color: rgba(0, 245, 212, 0.45);
+    }
+    /* Hide scrollbar for horizontal role chips */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-tab {
+      animation: fadeSlideUp 0.25s ease-out forwards;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex justify-center bg-[#05070a] text-gray-100 select-none">
+
+  <!-- Mobile App Container -->
+  <div class="w-full max-w-md min-h-screen bg-cyber-bg border-x border-gray-800/80 flex flex-col relative shadow-2xl">
+
+    <!-- Top App Header -->
+    <header class="sticky top-0 z-30 bg-cyber-bg/90 backdrop-blur-md border-b border-gray-800/90 px-4 py-3.5 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center text-gray-950 font-bold shadow-lg neon-glow">
+          <i class="fa-solid fa-crosshairs text-lg"></i>
+        </div>
+        <div>
+          <h1 class="font-esports text-xl font-bold leading-none tracking-wide text-white">
+            SQUAD<span class="text-cyber-neon">SYNC</span>
+          </h1>
+          <p class="text-[11px] text-gray-400 font-medium mt-0.5">India Esports Hub • Live</p>
+        </div>
+      </div>
+
+      <!-- Quick Status Pill -->
+      <button onclick="switchTab('profile')" class="flex items-center gap-2 bg-cyber-card hover:bg-cyber-cardHover border border-gray-800 px-3 py-1.5 rounded-full transition">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span id="headerIgnBadge" class="text-xs font-semibold text-gray-200 max-w-[95px] truncate">IND_RusherX</span>
+      </button>
+    </header>
+
+    <!-- Toast Notification Banner (No alert() used) -->
+    <div id="toastBanner" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-sm pointer-events-none opacity-0 transition-all duration-300 transform -translate-y-2">
+      <div class="bg-gray-900/95 border border-cyber-neon/60 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 backdrop-blur-md">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-cyber-neon text-lg"></i>
+        <p id="toastMessage" class="text-xs font-medium leading-snug text-gray-100"></p>
+      </div>
+    </div>
+
+    <!-- Main Scrollable Content Area -->
+    <main id="appContent" class="flex-1 overflow-y-auto px-4 pt-4 pb-24 space-y-4">
+      <!-- Views will be injected here dynamically -->
+    </main>
+
+    <!-- Bottom Tab Navigation (3 Tabs) -->
+    <nav class="fixed bottom-0 w-full max-w-md z-30 bg-cyber-card/95 backdrop-blur-lg border-t border-gray-800 px-2 py-2 flex items-center justify-around">
+      <button onclick="switchTab('trials')" id="nav-trials" class="nav-btn flex-1 flex flex-col items-center justify-center py-1.5 rounded-xl transition text-cyber-neon">
+        <i class="fa-solid fa-users-viewfinder text-lg mb-1"></i>
+        <span class="text-[11px] font-semibold">Find Squad / Trials</span>
+      </button>
+
+      <button onclick="switchTab('scrims')" id="nav-scrims" class="nav-btn flex-1 flex flex-col items-center justify-center py-1.5 rounded-xl transition text-gray-400 hover:text-gray-200">
+        <i class="fa-solid fa-trophy text-lg mb-1"></i>
+        <span class="text-[11px] font-semibold">Scrims & Matches</span>
+      </button>
+
+      <button onclick="switchTab('profile')" id="nav-profile" class="nav-btn flex-1 flex flex-col items-center justify-center py-1.5 rounded-xl transition text-gray-400 hover:text-gray-200">
+        <i class="fa-solid fa-user-astronaut text-lg mb-1"></i>
+        <span class="text-[11px] font-semibold">My Profile</span>
+      </button>
+    </nav>
+
+    <!-- MODAL 1: Apply for Trial Modal -->
+    <div id="applyModal" class="fixed inset-0 z-40 hidden items-end sm:items-center justify-center bg-black/75 backdrop-blur-xs p-3">
+      <div class="w-full max-w-md bg-cyber-card border border-gray-700 rounded-3xl p-5 shadow-2xl animate-tab">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <span class="text-[11px] uppercase tracking-wider font-bold text-cyber-neon">Esports Roster Trial</span>
+            <h3 id="applyModalTeamTitle" class="font-esports text-xl font-bold text-white">Team SoulSpark</h3>
+          </div>
+          <button onclick="closeModal('applyModal')" class="w-9 h-9 rounded-full bg-gray-800 text-gray-400 hover:text-white flex items-center justify-center">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <form id="applyTrialForm" onsubmit="submitTrialApplication(event)" class="space-y-3.5">
+          <input type="hidden" id="applyTeamId" />
+
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1">In-Game Name (IGN)</label>
+            <input type="text" id="applyIgn" required placeholder="e.g. IND_RusherX"
+              class="w-full bg-cyber-bg border border-gray-700 focus:border-cyber-neon rounded-xl px-3.5 py-2.5 text-sm text-white outline-none transition" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1">Game UID</label>
+            <input type="text" id="applyUid" required placeholder="e.g. 2849104721"
+              class="w-full bg-cyber-bg border border-gray-700 focus:border-cyber-neon rounded-xl px-3.5 py-2.5 text-sm text-white outline-none transition" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1">Applying For Role</label>
+            <select id="applyRole" class="w-full bg-cyber-bg border border-gray-700 focus:border-cyber-neon rounded-xl px-3.5 py-2.5 text-sm text-white outline-none">
+              <option value="Rusher">Rusher (Primary Entry)</option>
+              <option value="Sniper">Sniper / Marksman</option>
+              <option value="IGL">IGL (In-Game Leader)</option>
+              <option value="Support">Support / Grenadier</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1">Short Note / Experience (Optional)</label>
+            <input type="text" id="applyNote" placeholder="e.g. 1v1 No-Skill specialist, 4.2 KD, active night scrims"
+              class="w-full bg-cyber-bg border border-gray-700 focus:border-cyber-neon rounded-xl px-3.5 py-2.5 text-sm text-white outline-none transition" />
+          </div>
+
+          <div class="pt-2 flex gap-2.5">
+            <button type="button" onclick="closeModal('applyModal')" class="flex-1 py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-semibold transition">
+              Cancel
+            </button>
+            <button type="submit" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-emerald-400 to-cyan-400 text-gray-950 text-sm font-bold shadow-lg neon-glow transition active:scale-95">
+              Send Trial Request
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL 2: + Post New Team Trial Modal -->
+    <div id="postTrialModal" class="fixed inset-0 z-40 hidden items-end sm:items-center justify-center bg-black/75 backdrop-blur-xs p-3">
+      <div class="w-full max-w-md bg-cyber-card border border-gray-700 rounded-3xl p-5 shadow-2xl animate-tab max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <span class="text-[11px] uppercase tracking-wider font-bold text-purple-400">Recruit Players</span>
+            <h3 class="font-esports text-xl font-bold text-white">Post Team Trial</h3>
+          </div>
+          <button onclick="closeModal('postTrialModal')" class="w-9 h-9 rounded-full bg-gray-800 text-gray-400 hover:text-white flex items-center justify-center">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <form id="postTrialForm" onsubmit="submitNewTrialPost(event)" class="space-y-3">
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label class="block text-xs font-medium text-gray-400 mb-1">Team Name</label>
+              <input type="text" id="postTeamName" required placeholder="e.g. VORTEX ESPORTS"
+                class="w-full bg-cyber-bg border border-gray-700 focus:border-cyber-neon rounded-xl px-3 py-2.5 text-sm text-white outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-400 mb-1">Game</label>
+              <select id="postGame" class="w-full bg-cyber-bg border border-gray-700 focus:border-cyber-neon rounded-xl px-3 py-2.5 text-sm text-white outline-none">
+                <option value="Free Fire MAX">Free Fire MAX</option>
+                <option value="BGMI">BGMI</option>
+                <option value="COD Mobile">COD Mobile</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label class="block text-xs font-medium text-gray-400 mb-1">Required Role</label>
+              <select id="postRole" class="w-full bg-cyber-bg border border-gray-700 focus:border-cyber-neon rounded-xl px-3 py-2.5 text-sm text-white outline-none">
+                <option value="Rusher">Rusher</option>
+                <option value="Sniper">Sniper</option>
+                <option value="IGL">IGL</option>
+                <option value="Support">Support</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-400 mb-1">Min Rank / Tier</label>
+              <input type="text" id="postRank" required placeholder="e.g. Heroic / Master"
+                class="w-full bg-cyber-bg border border-gray-700 focus:border-cyber-neon rounded-xl px-3 py-2.5 text-sm text-white outline-none" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1">Playing / Practice Time</label>
+            <input type="text" id="postTime" required placeholder="e.g. 9:00 PM - 1:00 AM IST"
+              class="w-full bg-cyber-bg border border-gray-700 focus:border-cyber-neon rounded-xl px-3 py-2.5 text-sm text-white outline-none" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1">Trial Format / Requirement</label>
+            <input type="text" id="postDesc" required placeholder="e.g. 1v1 No-Skill + 2 Squad Scrims test"
+              class="w-full bg-cyber-bg border border-gray-700 focus:border-cyber-neon rounded-xl px-3 py-2.5 text-sm text-white outline-none" />
+          </div>
+
+          <div class="pt-2 flex gap-2.5">
+            <button type="button" onclick="closeModal('postTrialModal')" class="flex-1 py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-semibold">
+              Cancel
+            </button>
+            <button type="submit" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-cyan-400 text-gray-950 text-sm font-bold shadow-lg">
+              Publish Trial
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL 3: Room ID & Password Reveal Modal -->
+    <div id="roomModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-black/80 backdrop-blur-xs p-4">
+      <div class="w-full max-w-sm bg-cyber-card border border-cyber-neon/50 rounded-3xl p-5 shadow-2xl animate-tab text-center">
+        <div class="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-400/40 text-cyber-neon flex items-center justify-center mx-auto mb-3">
+          <i class="fa-solid fa-key text-xl"></i>
+        </div>
+        <h3 id="roomModalTitle" class="font-esports text-xl font-bold text-white">T1 Night Practice Scrims</h3>
+        <p class="text-xs text-gray-400 mt-1 mb-4">Join custom lobby 10 mins before match start. Do not share outside squad.</p>
+
+        <div class="bg-cyber-bg border border-gray-800 rounded-2xl p-3.5 space-y-2.5 text-left mb-4">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-gray-400">Custom Room ID</span>
+            <div class="flex items-center gap-2">
+              <span id="roomIdText" class="font-mono font-bold text-sm text-cyber-neon">8492017</span>
+              <button onclick="copyRoomField('roomIdText', 'Room ID')" class="p-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs">
+                <i class="fa-regular fa-copy"></i>
+              </button>
+            </div>
+          </div>
+          <div class="border-t border-gray-800/80 pt-2.5 flex items-center justify-between">
+            <span class="text-xs text-gray-400">Password</span>
+            <div class="flex items-center gap-2">
+              <span id="roomPassText" class="font-mono font-bold text-sm text-amber-400">IND99</span>
+              <button onclick="copyRoomField('roomPassText', 'Password')" class="p-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs">
+                <i class="fa-regular fa-copy"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <button onclick="closeModal('roomModal')" class="w-full py-3 rounded-xl bg-cyber-neon text-gray-950 font-bold text-sm">
+          Got It, Ready to Drop!
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Application Logic & State -->
+  <script>
+    // ==========================================
+    // 1. INITIAL REALISTIC INDIAN ESPORTS DATA
+    // ==========================================
+    const DEFAULT_STATE = {
+      activeTab: 'trials',
+      roleFilter: 'All',
+      profile: {
+        ign: 'IND_RusherX',
+        uid: '2849104721',
+        primaryRole: 'Rusher',
+        secondaryRole: 'Support',
+        activeTime: '10:00 PM - 2:30 AM IST',
+        bio: 'Aggressive entry fragger • No-Skill 1v1 specialist • Grinding T1/T2 scrims'
+      },
+      trials: [
+        {
+          id: 'tr_1',
+          teamName: 'APEX PREDATORS IND',
+          tag: 'APX',
+          game: 'Free Fire MAX',
+          role: 'Rusher',
+          rank: 'Heroic 5★ / Master',
+          playingTime: '9:30 PM - 1:30 AM',
+          format: '1v1 No-Skill + 3 Squad Scrims',
+          verified: true,
+          applied: false
+        },
+        {
+          id: 'tr_2',
+          teamName: 'GARUDA ESPORTS',
+          tag: 'GRD',
+          game: 'Free Fire MAX',
+          role: 'IGL',
+          rank: 'Grandmaster / Master',
+          playingTime: '8:00 PM - 12:00 AM',
+          format: 'Zone Rotation & Callout Test',
+          verified: true,
+          applied: false
+        },
+        {
+          id: 'tr_3',
+          teamName: 'DECCAN VIPERS',
+          tag: 'DCV',
+          game: 'BGMI',
+          role: 'Sniper',
+          rank: 'Ace Dominator',
+          playingTime: '10:00 PM - 2:00 AM',
+          format: 'TDM + Classic Erangel Tryout',
+          verified: false,
+          applied: false
+        },
+        {
+          id: 'tr_4',
+          teamName: 'KOLKATA KNIGHTS FF',
+          tag: 'KKF',
+          game: 'Free Fire MAX',
+          role: 'Support',
+          rank: 'Heroic 3★+',
+          playingTime: '7:00 PM - 11:00 PM',
+          format: 'Nade Timing & Crossfire Drill',
+          verified: true,
+          applied: false
+        },
+        {
+          id: 'tr_5',
+          teamName: 'RUTHLESS SYNDICATE',
+          tag: 'RSY',
+          game: 'Free Fire MAX',
+          role: 'Rusher',
+          rank: 'Master+',
+          playingTime: '11:00 PM - 3:00 AM',
+          format: 'Late Night T2 Roster Trial',
+          verified: false,
+          applied: false
+        }
+      ],
+      scrims: [
+        {
+          id: 'sc_1',
+          title: 'Midnight T1 Underdog Scrims #14',
+          organizer: 'Bharat Esports Org',
+          game: 'Free Fire MAX',
+          mode: 'Squad (4v4)',
+          map: 'Bermuda + Purgatory',
+          time: 'Tonight • 11:30 PM IST',
+          totalSlots: 12,
+          slotsLeft: 3,
+          entry: 'FREE',
+          booked: false,
+          roomId: '7492810',
+          roomPass: 'BHARAT11'
+        },
+        {
+          id: 'sc_2',
+          title: 'Pro Rusher Warmup Custom',
+          organizer: 'IND Scrims Network',
+          game: 'Free Fire MAX',
+          mode: 'Duo (2v2)',
+          map: 'Bermuda Remastered',
+          time: 'Tonight • 12:45 AM IST',
+          totalSlots: 24,
+          slotsLeft: 5,
+          entry: 'FREE',
+          booked: false,
+          roomId: '9103844',
+          roomPass: 'RUSH24'
+        },
+        {
+          id: 'sc_3',
+          title: 'Evening League Qualifier Practice',
+          organizer: 'Deccan Gaming Hub',
+          game: 'Free Fire MAX',
+          mode: 'Squad (4v4)',
+          map: 'Alpine + Kalahari',
+          time: 'Tomorrow • 8:30 PM IST',
+          totalSlots: 12,
+          slotsLeft: 2,
+          entry: 'FREE',
+          booked: false,
+          roomId: '5582913',
+          roomPass: 'DGH830'
+        },
+        {
+          id: 'sc_4',
+          title: 'BGMI Late Night Classic Scrims',
+          organizer: 'NorthZone Esports',
+          game: 'BGMI',
+          mode: 'Squad (4v4)',
+          map: 'Erangel + Miramar',
+          time: 'Tonight • 1:15 AM IST',
+          totalSlots: 25,
+          slotsLeft: 6,
+          entry: 'FREE',
+          booked: false,
+          roomId: '6301928',
+          roomPass: 'NZE99'
+        }
+      ]
+    };
+
+    // Load from localStorage if available so user edits persist
+    let appState = JSON.parse(localStorage.getItem('squadSyncState_v1')) || DEFAULT_STATE;
+
+    function saveState() {
+      localStorage.setItem('squadSyncState_v1', JSON.stringify(appState));
+      document.getElementById('headerIgnBadge').textContent = appState.profile.ign || 'Player';
+    }
+
+    // ==========================================
+    // 2. TOAST NOTIFICATION & MODAL HELPERS
+    // ==========================================
+    let toastTimer = null;
+    function showToast(message, type = 'success') {
+      const banner = document.getElementById('toastBanner');
+      const msgEl = document.getElementById('toastMessage');
+      const iconEl = document.getElementById('toastIcon');
+
+      msgEl.textContent = message;
+      iconEl.className = type === 'success'
+        ? 'fa-solid fa-circle-check text-cyber-neon text-lg'
+        : 'fa-solid fa-bolt text-amber-400 text-lg';
+
+      banner.classList.remove('opacity-0', '-translate-y-2');
+      banner.classList.add('opacity-100', 'translate-y-0');
+
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        banner.classList.remove('opacity-100', 'translate-y-0');
+        banner.classList.add('opacity-0', '-translate-y-2');
+      }, 3000);
+    }
+
+    function openModal(id) {
+      const el = document.getElementById(id);
+      el.classList.remove('hidden');
+      el.classList.add('flex');
+    }
+
+    function closeModal(id) {
+      const el = document.getElementById(id);
+      el.classList.add('hidden');
+      el.classList.remove('flex');
+    }
+
+    function copyRoomField(elementId, label) {
+      const text = document.getElementById(elementId).textContent;
+      const tempInput = document.createElement('input');
+      tempInput.value = text;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempInput);
+      showToast(`${label} (${text}) copied to clipboard!`);
+    }
+
+    // ==========================================
+    // 3. TAB NAVIGATION
+    // ==========================================
+    function switchTab(tabName) {
+      appState.activeTab = tabName;
+      saveState();
+
+      // Update bottom nav button styles
+      ['trials', 'scrims', 'profile'].forEach(t => {
+        const btn = document.getElementById(`nav-${t}`);
+        if (t === tabName) {
+          btn.classList.remove('text-gray-400', 'hover:text-gray-200');
+          btn.classList.add('text-cyber-neon', 'bg-emerald-500/10');
+        } else {
+          btn.classList.add('text-gray-400', 'hover:text-gray-200');
+          btn.classList.remove('text-cyber-neon', 'bg-emerald-500/10');
+        }
+      });
+
+      renderCurrentTab();
+    }
+
+    function renderCurrentTab() {
+      const container = document.getElementById('appContent');
+      if (appState.activeTab === 'trials') {
+        container.innerHTML = renderTrialsTab();
+      } else if (appState.activeTab === 'scrims') {
+        container.innerHTML = renderScrimsTab();
+      } else {
+        container.innerHTML = renderProfileTab();
+      }
+    }
+
+    // ==========================================
+    // 4. TAB 1: FIND SQUAD / TRIALS
+    // ==========================================
+    function getRoleBadgeStyle(role) {
+      switch (role) {
+        case 'Rusher': return 'bg-rose-500/15 text-rose-400 border-rose-500/30';
+        case 'Sniper': return 'bg-amber-500/15 text-amber-400 border-amber-500/30';
+        case 'IGL': return 'bg-purple-500/15 text-purple-400 border-purple-500/30';
+        case 'Support': return 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30';
+        default: return 'bg-gray-800 text-gray-300 border-gray-700';
+      }
+    }
+
+    function setRoleFilter(role) {
+      appState.roleFilter = role;
+      renderCurrentTab();
+    }
+
+    function renderTrialsTab() {
+      const roles = ['All', 'Rusher', 'Sniper', 'IGL', 'Support'];
+      const filteredTrials = appState.roleFilter === 'All'
+        ? appState.trials
+        : appState.trials.filter(t => t.role === appState.roleFilter);
+
+      return `
+        <div class="animate-tab space-y-4">
+          <!-- Hero Action Banner -->
+          <div class="bg-gradient-to-r from-gray-900 via-[#131b2b] to-gray-900 border border-gray-800 rounded-2xl p-4 flex items-center justify-between gap-3">
+            <div>
+              <span class="text-[11px] font-bold uppercase tracking-wider text-cyber-neon">Active Roster Trials</span>
+              <h2 class="font-esports text-lg font-bold text-white leading-tight mt-0.5">Find Your Competitive Squad</h2>
+              <p class="text-xs text-gray-400 mt-0.5">${filteredTrials.length} teams recruiting right now</p>
+            </div>
+            <button onclick="openModal('postTrialModal')" class="shrink-0 bg-cyber-neon hover:bg-emerald-300 text-gray-950 font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-lg neon-glow flex items-center gap-1.5 active:scale-95 transition">
+              <i class="fa-solid fa-plus"></i> Post Trial
+            </button>
+          </div>
+
+          <!-- Role Filter Chips -->
+          <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+            ${roles.map(role => {
+              const active = appState.roleFilter === role;
+              return `
+                <button onclick="setRoleFilter('${role}')"
+                  class="px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap border transition ${
+                    active
+                      ? 'bg-cyber-neon/15 text-cyber-neon border-cyber-neon/60 shadow-sm'
+                      : 'bg-cyber-card text-gray-400 border-gray-800 hover:text-gray-200'
+                  }">
+                  ${role === 'All' ? 'All Roles' : role}
+                </button>
+              `;
+            }).join('')}
+          </div>
+
+          <!-- Team Trial Cards List -->
+          <div class="space-y-3">
+            ${filteredTrials.length === 0 ? `
+              <div class="bg-cyber-card border border-gray-800 rounded-2xl p-8 text-center">
+                <i class="fa-solid fa-ghost text-3xl text-gray-600 mb-2"></i>
+                <p class="text-sm font-medium text-gray-300">No trials for "${appState.roleFilter}" right now</p>
+                <p class="text-xs text-gray-500 mt-1">Switch filter or post your own team requirement.</p>
+              </div>
+            ` : filteredTrials.map(trial => `
+              <div class="bg-cyber-card border ${trial.applied ? 'border-emerald-500/40' : 'border-gray-800'} rounded-2xl p-4 space-y-3 transition hover:border-gray-700">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 flex items-center justify-center font-esports font-bold text-base text-cyber-neon">
+                      ${trial.tag}
+                    </div>
+                    <div>
+                      <div class="flex items-center gap-1.5">
+                        <h3 class="font-esports text-base font-bold text-white tracking-wide">${trial.teamName}</h3>
+                        ${trial.verified ? '<i class="fa-solid fa-circle-check text-cyan-400 text-xs" title="Verified Roster"></i>' : ''}
+                      </div>
+                      <span class="text-[11px] text-gray-400 font-medium">${trial.game}</span>
+                    </div>
+                  </div>
+                  <span class="px-2.5 py-1 rounded-lg text-[11px] font-bold border ${getRoleBadgeStyle(trial.role)}">
+                    Need: ${trial.role}
+                  </span>
+                </div>
+
+                <!-- Details Grid -->
+                <div class="grid grid-cols-2 gap-2 bg-cyber-bg/80 rounded-xl p-2.5 border border-gray-800/80 text-xs">
+                  <div>
+                    <span class="text-[10px] text-gray-500 block">Rank Req</span>
+                    <span class="text-gray-200 font-medium"><i class="fa-solid fa-medal text-amber-400 mr-1"></i>${trial.rank}</span>
+                  </div>
+                  <div>
+                    <span class="text-[10px] text-gray-500 block">Active Time</span>
+                    <span class="text-gray-200 font-medium"><i class="fa-regular fa-clock text-cyan-400 mr-1"></i>${trial.playingTime}</span>
+                  </div>
+                </div>
+
+                <div class="flex items-center justify-between pt-0.5 gap-3">
+                  <p class="text-[11px] text-gray-400 truncate">
+                    <i class="fa-solid fa-fire text-orange-400 mr-1"></i>${trial.format}
+                  </p>
+                  ${trial.applied ? `
+                    <span class="shrink-0 px-3.5 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 text-xs font-bold flex items-center gap-1.5">
+                      <i class="fa-solid fa-check"></i> Applied
+                    </span>
+                  ` : `
+                    <button onclick="openApplyModal('${trial.id}')" class="shrink-0 px-4 py-2 rounded-xl bg-gray-800 hover:bg-cyber-neon hover:text-gray-950 text-white border border-gray-700 hover:border-cyber-neon text-xs font-bold transition active:scale-95">
+                      Apply for Trial
+                    </button>
+                  `}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function openApplyModal(trialId) {
+      const trial = appState.trials.find(t => t.id === trialId);
+      if (!trial) return;
+
+      document.getElementById('applyTeamId').value = trial.id;
+      document.getElementById('applyModalTeamTitle').textContent = `${trial.teamName} (${trial.role})`;
+      document.getElementById('applyIgn').value = appState.profile.ign || '';
+      document.getElementById('applyUid').value = appState.profile.uid || '';
+      document.getElementById('applyRole').value = trial.role;
+      document.getElementById('applyNote').value = '';
+
+      openModal('applyModal');
+    }
+
+    function submitTrialApplication(event) {
+      event.preventDefault();
+      const trialId = document.getElementById('applyTeamId').value;
+      const ign = document.getElementById('applyIgn').value.trim();
+      const uid = document.getElementById('applyUid').value.trim();
+      const role = document.getElementById('applyRole').value;
+
+      const trial = appState.trials.find(t => t.id === trialId);
+      if (trial) {
+        trial.applied = true;
+        trial.appliedAs = `${ign} (${role})`;
+      }
+
+      saveState();
+      closeModal('applyModal');
+      renderCurrentTab();
+      showToast(`Trial request sent to ${trial.teamName} as ${ign}!`);
+    }
+
+    function submitNewTrialPost(event) {
+      event.preventDefault();
+      const teamName = document.getElementById('postTeamName').value.trim().toUpperCase();
+      const game = document.getElementById('postGame').value;
+      const role = document.getElementById('postRole').value;
+      const rank = document.getElementById('postRank').value.trim();
+      const playingTime = document.getElementById('postTime').value.trim();
+      const format = document.getElementById('postDesc').value.trim();
+
+      const words = teamName.split(' ');
+      const tag = words.length > 1
+        ? (words[0][0] + words[1][0] + (words[2]?.[0] || 'X')).toUpperCase()
+        : teamName.slice(0, 3).toUpperCase();
+
+      appState.trials.unshift({
+        id: 'tr_' + Date.now(),
+        teamName,
+        tag,
+        game,
+        role,
+        rank,
+        playingTime,
+        format,
+        verified: true,
+        applied: false
+      });
+
+      appState.roleFilter = 'All';
+      saveState();
+      closeModal('postTrialModal');
+      document.getElementById('postTrialForm').reset();
+      renderCurrentTab();
+      showToast(`Trial posted for ${teamName}!`);
+    }
+
+    // ==========================================
+    // 5. TAB 2: SCRIMS & MATCHES
+    // ==========================================
+    function renderScrimsTab() {
+      return `
+        <div class="animate-tab space-y-4">
+          <!-- Scrims Header Card -->
+          <div class="bg-gradient-to-r from-[#131926] to-[#1a1329] border border-gray-800 rounded-2xl p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-[11px] font-bold uppercase tracking-wider text-purple-400">Daily Practice Lobbies</span>
+                <h2 class="font-esports text-lg font-bold text-white mt-0.5">Free Custom Scrims & Rooms</h2>
+              </div>
+              <div class="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-400 flex items-center justify-center">
+                <i class="fa-solid fa-fire-flame-curved"></i>
+              </div>
+            </div>
+            <p class="text-xs text-gray-400 mt-1.5">Book a slot for your squad. Room ID & Password unlocks immediately after booking.</p>
+          </div>
+
+          <!-- Scrims Cards -->
+          <div class="space-y-3">
+            ${appState.scrims.map(scrim => {
+              const progressPct = Math.round(((scrim.totalSlots - scrim.slotsLeft) / scrim.totalSlots) * 100);
+              return `
+                <div class="bg-cyber-card border ${scrim.booked ? 'border-cyber-neon/50' : 'border-gray-800'} rounded-2xl p-4 space-y-3">
+                  <div class="flex items-start justify-between gap-2">
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <span class="px-2 py-0.5 rounded-md bg-cyan-500/15 text-cyan-300 text-[10px] font-bold uppercase">${scrim.game}</span>
+                        <span class="px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400 text-[10px] font-bold">${scrim.entry}</span>
+                      </div>
+                      <h3 class="font-esports text-base font-bold text-white mt-1.5">${scrim.title}</h3>
+                      <p class="text-[11px] text-gray-400">Hosted by ${scrim.organizer}</p>
+                    </div>
+                    <div class="text-right shrink-0">
+                      <span class="text-xs font-bold ${scrim.slotsLeft <= 2 ? 'text-rose-400' : 'text-cyber-neon'}">
+                        ${scrim.slotsLeft} Slots Left
+                      </span>
+                      <span class="block text-[10px] text-gray-500">of ${scrim.totalSlots} teams</span>
+                    </div>
+                  </div>
+
+                  <!-- Slot Fill Bar -->
+                  <div class="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-cyber-neon to-purple-500 rounded-full transition-all duration-300" style="width: ${progressPct}%"></div>
+                  </div>
+
+                  <!-- Mode, Time, Map Info -->
+                  <div class="grid grid-cols-3 gap-2 bg-cyber-bg/90 border border-gray-800/80 rounded-xl p-2.5 text-[11px]">
+                    <div>
+                      <span class="text-gray-500 block text-[10px]">Mode</span>
+                      <span class="text-gray-200 font-semibold">${scrim.mode}</span>
+                    </div>
+                    <div>
+                      <span class="text-gray-500 block text-[10px]">Map</span>
+                      <span class="text-gray-200 font-semibold truncate block">${scrim.map}</span>
+                    </div>
+                    <div>
+                      <span class="text-gray-500 block text-[10px]">Time</span>
+                      <span class="text-amber-300 font-semibold truncate block">${scrim.time.replace('Tonight • ', '')}</span>
+                    </div>
+                  </div>
+
+                  <!-- Action Button -->
+                  <div class="pt-0.5">
+                    ${scrim.booked ? `
+                      <div class="flex items-center gap-2">
+                        <span class="flex-1 py-2.5 px-3 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 text-xs font-bold text-center">
+                          <i class="fa-solid fa-circle-check mr-1"></i> Slot Booked
+                        </span>
+                        <button onclick="revealRoomModal('${scrim.id}')" class="flex-1 py-2.5 px-3 rounded-xl bg-cyber-neon hover:bg-emerald-300 text-gray-950 text-xs font-bold shadow-md transition active:scale-95">
+                          <i class="fa-solid fa-key mr-1"></i> Room ID & Pass
+                        </button>
+                      </div>
+                    ` : `
+                      <button onclick="bookScrimSlot('${scrim.id}')" ${scrim.slotsLeft === 0 ? 'disabled' : ''}
+                        class="w-full py-2.5 rounded-xl bg-gray-800 hover:bg-cyber-neon hover:text-gray-950 text-white border border-gray-700 hover:border-cyber-neon text-xs font-bold transition active:scale-95">
+                        <i class="fa-solid fa-bolt mr-1"></i> Book Squad Slot (${scrim.slotsLeft} left)
+                      </button>
+                    `}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function bookScrimSlot(scrimId) {
+      const scrim = appState.scrims.find(s => s.id === scrimId);
+      if (!scrim || scrim.booked || scrim.slotsLeft <= 0) return;
+
+      scrim.booked = true;
+      scrim.slotsLeft = Math.max(0, scrim.slotsLeft - 1);
+      saveState();
+      renderCurrentTab();
+      showToast(`Slot booked for ${scrim.title}! Tap Room ID & Pass.`);
+    }
+
+    function revealRoomModal(scrimId) {
+      const scrim = appState.scrims.find(s => s.id === scrimId);
+      if (!scrim) return;
+
+      document.getElementById('roomModalTitle').textContent = scrim.title;
+      document.getElementById('roomIdText').textContent = scrim.roomId;
+      document.getElementById('roomPassText').textContent = scrim.roomPass;
+      openModal('roomModal');
+    }
+
+    // ==========================================
+    // 6. TAB 3: MY PROFILE
+    // ==========================================
+    function renderProfileTab() {
+      const p = appState.profile;
+      const appliedTrials = appState.trials.filter(t => t.applied);
+      const bookedScrims = appState.scrims.filter(s => s.booked);
+
+      return `
+        <div class="animate-tab space-y-4">
+          <!-- Gamer Card Header -->
+          <div class="bg-gradient-to-br from-[#141b29] via-cyber-card to-[#1a1426] border border-gray-800 rounded-3xl p-4 relative overflow-hidden">
+            <div class="flex items-center gap-3.5">
+              <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-cyber-neon to-purple-500 p-0.5 shrink-0">
+                <div class="w-full h-full bg-cyber-bg rounded-[14px] flex items-center justify-center text-cyber-neon text-2xl">
+                  <i class="fa-solid fa-user-ninja"></i>
+                </div>
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                  <h2 class="font-esports text-xl font-bold text-white truncate">${p.ign}</h2>
+                  <span class="px-2 py-0.5 rounded-md text-[10px] font-bold border ${getRoleBadgeStyle(p.primaryRole)}">${p.primaryRole}</span>
+                </div>
+                <p class="text-xs text-gray-400 font-mono mt-0.5">UID: ${p.uid}</p>
+                <p class="text-[11px] text-gray-300 mt-1 line-clamp-2">${p.bio}</p>
+              </div>
+            </div>
+
+            <!-- Quick Stats Row -->
+            <div class="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-gray-800/80 text-center">
+              <div class="bg-cyber-bg/60 rounded-xl py-2">
+                <span class="block font-esports text-base font-bold text-cyber-neon">${appliedTrials.length}</span>
+                <span class="text-[10px] text-gray-400">Trials Applied</span>
+              </div>
+              <div class="bg-cyber-bg/60 rounded-xl py-2">
+                <span class="block font-esports text-base font-bold text-purple-400">${bookedScrims.length}</span>
+                <span class="text-[10px] text-gray-400">Scrims Booked</span>
+              </div>
+              <div class="bg-cyber-bg/60 rounded-xl py-2">
+                <span class="block font-esports text-base font-bold text-amber-400">${p.secondaryRole}</span>
+                <span class="text-[10px] text-gray-400">2nd Role</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Editable Profile Form -->
+          <form onsubmit="saveGamerProfile(event)" class="bg-cyber-card border border-gray-800 rounded-2xl p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="font-esports text-base font-bold text-white">Edit Esports Card</h3>
+              <span class="text-[11px] text-gray-500">Auto-fills trial forms</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-[11px] font-medium text-gray-400 mb-1">In-Game Name (IGN)</label>
+                <input type="text" id="profIgn" value="${p.ign}" required
+                  class="w-full bg-cyber-bg border border-gray-700 focus:border-cyber-neon rounded-xl px-3 py-2 text-xs text-white outline-none" />
+              </div>
+              <div>
+                <label class="block text-[11px] font-medium text-gray-400 mb-1">Game UID</label>
+                <input type="text" id="profUid" value="${p.uid}" required
+                  class="w-full bg-cyber-bg border border-gray-700 focus:border-cyber-neon rounded-xl px-3 py-2 text-xs text-white outline-none" />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-[11px] font-medium text-gray-400 mb-1">Primary Role</label>
+                <select id="profPrimaryRole" class="w-full bg-cyber-bg border border-gray-700 focus:border-cyber-neon rounded-xl px-3 py-2 text-xs text-white outline-none">
+                  ${['Rusher', 'Sniper', 'IGL', 'Support'].map(r => `<option value="${r}" ${p.primaryRole === r ? 'selected' : ''}>${r}</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <label class="block text-[11px] font-medium text-gray-400 mb-1">Secondary Role</label>
+                <select id="profSecondaryRole" class="w-full bg-cyber-bg border border-gray-700 focus:border-cyber-neon rounded-xl px-3 py-2 text-xs text-white outline-none">
+                  ${['Support', 'Rusher', 'Sniper', 'IGL'].map(r => `<option value="${r}" ${p.secondaryRole === r ? 'selected' : ''}>${r}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-[11px] font-medium text-gray-400 mb-1">Active Grinding Time</label>
+              <input type="text" id="profActiveTime" value="${p.activeTime}" required
+                class="w-full bg-cyber-bg border border-gray-700 focus:border-cyber-neon rounded-xl px-3 py-2 text-xs text-white outline-none" />
+            </div>
+
+            <div>
+              <label class="block text-[11px] font-medium text-gray-400 mb-1">Player Bio / Highlights</label>
+              <input type="text" id="profBio" value="${p.bio}"
+                class="w-full bg-cyber-bg border border-gray-700 focus:border-cyber-neon rounded-xl px-3 py-2 text-xs text-white outline-none" />
+            </div>
+
+            <button type="submit" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-400 to-cyan-400 text-gray-950 font-bold text-xs shadow-md active:scale-95 transition">
+              Save Gamer Profile
+            </button>
+          </form>
+
+          <!-- My Applied Trials & Booked Scrims Summary -->
+          <div class="bg-cyber-card border border-gray-800 rounded-2xl p-4 space-y-3">
+            <h3 class="font-esports text-base font-bold text-white">My Active Schedule</h3>
+
+            ${bookedScrims.length === 0 && appliedTrials.length === 0 ? `
+              <p class="text-xs text-gray-500 py-2">No trials applied or scrims booked yet. Explore the other tabs to jump in!</p>
+            ` : `
+              <div class="space-y-2">
+                ${bookedScrims.map(s => `
+                  <div class="flex items-center justify-between bg-cyber-bg border border-gray-800 rounded-xl px-3 py-2.5">
+                    <div>
+                      <span class="text-[10px] text-purple-400 font-bold uppercase">Scrim Booked</span>
+                      <p class="text-xs font-semibold text-white">${s.title}</p>
+                      <span class="text-[10px] text-gray-400">${s.time}</span>
+                    </div>
+                    <button onclick="revealRoomModal('${s.id}')" class="px-2.5 py-1.5 rounded-lg bg-cyber-neon/15 text-cyber-neon text-[11px] font-bold">
+                      Room ID
+                    </button>
+                  </div>
+                `).join('')}
+
+                ${appliedTrials.map(t => `
+                  <div class="flex items-center justify-between bg-cyber-bg border border-gray-800 rounded-xl px-3 py-2.5">
+                    <div>
+                      <span class="text-[10px] text-emerald-400 font-bold uppercase">Trial Requested</span>
+                      <p class="text-xs font-semibold text-white">${t.teamName}</p>
+                      <span class="text-[10px] text-gray-400">Role: ${t.role} • ${t.playingTime}</span>
+                    </div>
+                    <span class="text-[11px] text-amber-400 font-semibold">Pending</span>
+                  </div>
+                `).join('')}
+              </div>
+            `}
+          </div>
+        </div>
+      `;
+    }
+
+    function saveGamerProfile(event) {
+      event.preventDefault();
+      appState.profile = {
+        ign: document.getElementById('profIgn').value.trim(),
+        uid: document.getElementById('profUid').value.trim(),
+        primaryRole: document.getElementById('profPrimaryRole').value,
+        secondaryRole: document.getElementById('profSecondaryRole').value,
+        activeTime: document.getElementById('profActiveTime').value.trim(),
+        bio: document.getElementById('profBio').value.trim()
+      };
+      saveState();
+      renderCurrentTab();
+      showToast('Esports profile updated!');
+    }
+
+    // Initialize App on Load
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('headerIgnBadge').textContent = appState.profile.ign;
+      switchTab(appState.activeTab || 'trials');
+    });
+  </script>
+</body>
+</html>
